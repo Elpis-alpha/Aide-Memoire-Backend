@@ -1,3 +1,7 @@
+require('./middleware/init')
+
+require('./db/mongoose')
+
 const express = require('express')
 
 const chalk = require('chalk')
@@ -7,8 +11,6 @@ const cors = require('cors')
 const path = require('path')
 
 const hbs = require('hbs')
-
-const mongoose = require('./db/mongoose')
 
 const _404Router = require('./routers/404')
 
@@ -112,8 +114,8 @@ app.use(_404Router)
 // Listening Server
 app.listen(port, () => {
 
-  console.log(chalk.yellow('\n\nInitializing Server'));
-
   console.log(chalk.hex('#009e00')(`Server started successfully on port ${port}`));
+
+  console.log(chalk.cyanBright(`Server time: ${new Date().toLocaleString()}`));
 
 })
