@@ -34,6 +34,8 @@ router.post('/api/note/create', auth, async (req, res) => {
 
   } catch (error) {
 
+    console.log(error)
+
     return errorJson(res, 400)
 
   }
@@ -134,7 +136,7 @@ router.get('/api/note/get-notes/list/by-qa', auth, async (req, res) => {
 
     const reg = new RegExp(`${name}`, 'i')
 
-    const notes = await Note.find({ name: reg, owner: req.user._id }, { name: 1, updatedAt: 1, owner: 1 })
+    const notes = await Note.find({ name: reg, owner: req.user._id }, { name: 1, updatedAt: 1, owner: 1, description: 1 })
 
     if (!notes) return errorJson(res, 404)
 
@@ -264,7 +266,7 @@ router.patch('/api/note/update/:id', auth, async (req, res) => {
 
   const updates = Object.keys(req.body)
 
-  const allowedUpdate = ['name', 'text']
+  const allowedUpdate = ['name', 'text', 'description']
 
   const isValidOp = updates.every(note => allowedUpdate.includes(note))
 
@@ -418,9 +420,69 @@ router.get('/api/note/get-sec-notes/:id', auth, async (req, res) => {
 
       owner: req.user, "sections": { $elemMatch: { _id: ObjectId(secID) } }
 
-    }, { name: 1, sections: 1, tags: 1, })
+    }, { name: 1, sections: 1, tags: 1, description: 1 })
 
     res.send(userNotes)
+
+  } catch (error) {
+
+    return errorJson(res, 404)
+
+  }
+
+})
+
+
+// Sends get request to get public sectioned note
+router.get('/api/note/get-pub-sec-notes/:id', async (req, res) => {
+
+  const secID = req.params.id
+
+  try {
+
+    const section = await Section.findOne({ _id: secID, isPublic: true })
+
+    if (!section) return errorJson(res, 404)
+
+    const userNotes = await Note.find({
+
+      "sections": { $elemMatch: { _id: ObjectId(secID) } }
+
+    }, { name: 1, sections: 1, tags: 1, description: 1 })
+
+    res.send(userNotes)
+
+  } catch (error) {
+
+    return errorJson(res, 404)
+
+  }
+
+})
+
+
+// Sends get request to get public sectioned note
+router.get('/api/note/get-pub-sec-note/:secID/:noteID', async (req, res) => {
+
+  const secID = req.params.secID
+
+  const noteID = req.params.noteID
+
+  try {
+
+    const section = await Section.findOne({ _id: secID, isPublic: true })
+
+    if (!section) return errorJson(res, 404)
+
+    const note = await Note.findOne({
+
+      _id: noteID, "sections": { $elemMatch: { _id: ObjectId(secID) } }
+
+    }, { name: 1, sections: 1, tags: 1, description: 1, text: 1 })
+
+    if (!note) return errorJson(res, 404)
+
+    res.send({ section, note })
 
   } catch (error) {
 

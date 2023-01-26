@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const User = require('./User')
 
 
 const noteSchema = new mongoose.Schema({
@@ -19,6 +20,16 @@ const noteSchema = new mongoose.Schema({
 
     required: true,
 
+    trim: true,
+
+  },
+
+  description: {
+
+    type: String,
+    
+    default: "",
+    
     trim: true,
 
   },

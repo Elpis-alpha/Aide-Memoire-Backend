@@ -76,6 +76,28 @@ router.get('/api/section/retrieve/:id', auth, async (req, res) => {
 })
 
 
+// Sends get request to get a public section
+router.get('/api/section/retrieve-pub/:id', async (req, res) => {
+
+  const _id = req.params.id
+
+  try {
+
+    const section = await Section.findOne({ _id, isPublic: true })
+
+    if (!section) return errorJson(res, 404)
+
+    res.send(section)
+
+  } catch (error) {
+
+    return errorJson(res, 500)
+
+  }
+
+})
+
+
 // Sends patch request to update sections
 router.patch('/api/section/update/:id', auth, async (req, res) => {
 
@@ -169,7 +191,7 @@ router.delete('/api/section/delete/:id', auth, async (req, res) => {
 
   try {
 
-    const section = await Section.findOneAndDelete({ _id, owner: req.user._id, canDelete: true })
+    const section = await Section.findOneAndDelete({ _id, owner: req.user._id })
 
     if (!section) return errorJson(res, 404)
 
