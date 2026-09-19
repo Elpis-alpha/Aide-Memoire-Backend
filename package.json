@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "env-cmd -f./config/dev.env nodemon src/index.js -e js,hbs,json,env,css",
+    "dev": "env-cmd -f./.env nodemon src/index.js -e js,hbs,json,env,css",
     "db": "cd C:\\Program Files\\MongoDB\\package\\bin && mongod.exe --dbpath=\"C:\\Program Files\\MongoDB\\database\""
   },
   "keywords": [],
