@@ -615,3 +615,159 @@ registry.registerPath({
     503: { description: 'Not ready', content: json(z.object({ status: z.string() })) },
   },
 })
+
+/* ---- Routes that existed in code but not in the spec --------------------
+ * Found when the frontend's generated types referenced paths that were not
+ * there. The drift check in CI catches a stale regeneration; it cannot catch
+ * a route that was never registered, so this is the gap it missed.
+ * ------------------------------------------------------------------------ */
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/notes/special/{name}',
+  tags: ['Notes'],
+  summary: 'Read a note by its reserved name, such as the welcome note',
+  security: secured,
+  request: { params: z.object({ name: z.string() }) },
+  responses: { 200: { description: 'OK', content: json(Note) }, ...errors(401, 404) },
+})
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/notes/by-tag/{tagId}',
+  tags: ['Notes'],
+  summary: 'List your notes carrying a tag',
+  security: secured,
+  request: { params: z.object({ tagId: objectId }), query: paginationQuery },
+  responses: { 200: { description: 'OK', content: json(NotePage) }, ...errors(401, 404) },
+})
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/notes/{id}/sections',
+  tags: ['Notes'],
+  summary: 'File a note in a section',
+  security: secured,
+  request: { params: idParam, body: { content: json(z.object({ id: objectId })) } },
+  responses: {
+    200: { description: 'Updated', content: json(z.array(NamedRef)) },
+    ...errors(400, 401, 404),
+  },
+})
+
+registry.registerPath({
+  method: 'delete',
+  path: '/api/notes/{id}/sections/{relationId}',
+  tags: ['Notes'],
+  summary: 'Remove a note from a section',
+  security: secured,
+  request: { params: z.object({ id: objectId, relationId: objectId }) },
+  responses: {
+    200: { description: 'Updated', content: json(z.array(NamedRef)) },
+    ...errors(401, 404),
+  },
+})
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/notes/{id}/tags',
+  tags: ['Notes'],
+  summary: 'Tag a note',
+  security: secured,
+  request: { params: idParam, body: { content: json(z.object({ id: objectId })) } },
+  responses: {
+    200: { description: 'Updated', content: json(z.array(NamedRef)) },
+    ...errors(400, 401, 404),
+  },
+})
+
+registry.registerPath({
+  method: 'delete',
+  path: '/api/notes/{id}/tags/{relationId}',
+  tags: ['Notes'],
+  summary: 'Remove a tag from a note',
+  security: secured,
+  request: { params: z.object({ id: objectId, relationId: objectId }) },
+  responses: {
+    200: { description: 'Updated', content: json(z.array(NamedRef)) },
+    ...errors(401, 404),
+  },
+})
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/sections/{id}',
+  tags: ['Sections'],
+  summary: 'Read one of your sections',
+  security: secured,
+  request: { params: idParam },
+  responses: { 200: { description: 'OK', content: json(Section) }, ...errors(401, 404) },
+})
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/sections/{id}/notes',
+  tags: ['Sections'],
+  summary: 'List the notes filed in one of your sections',
+  security: secured,
+  request: { params: idParam, query: paginationQuery },
+  responses: { 200: { description: 'OK', content: json(NotePage) }, ...errors(401, 404) },
+})
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/sections/{id}/toggle-open',
+  tags: ['Sections'],
+  summary: 'Expand or collapse a section in the sidebar',
+  security: secured,
+  request: { params: idParam },
+  responses: {
+    200: { description: 'Toggled', content: json(z.object({ open: z.boolean() })) },
+    ...errors(401, 404),
+  },
+})
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/sections/{id}/toggle-public',
+  tags: ['Sections'],
+  summary: 'Flip a section between public and private',
+  description: 'A public section still exposes only the notes that are themselves public (S1-03).',
+  security: secured,
+  request: { params: idParam },
+  responses: {
+    200: { description: 'Toggled', content: json(z.object({ isPublic: z.boolean() })) },
+    ...errors(401, 404),
+  },
+})
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/tags/{id}',
+  tags: ['Tags'],
+  summary: 'Read a tag',
+  request: { params: idParam },
+  responses: { 200: { description: 'OK', content: json(Tag) }, ...errors(404) },
+})
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/public/notes/by-tag/{tagId}',
+  tags: ['Public'],
+  summary: 'List public notes carrying a tag',
+  request: { params: z.object({ tagId: objectId }), query: paginationQuery },
+  responses: { 200: { description: 'OK', content: json(NotePage) }, ...errors(404) },
+})
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/auth/verify/confirm',
+  tags: ['Auth'],
+  summary: 'Confirm an email address with a verification token',
+  security: secured,
+  request: { body: { content: json(z.object({ token: z.string() })) } },
+  responses: {
+    200: { description: 'Verified', content: json(MessageResponse) },
+    ...errors(400, 401, 404, 409),
+  },
+})
