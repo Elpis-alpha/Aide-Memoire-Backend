@@ -27,7 +27,15 @@ const noteSchema = new Schema<INote>(
     owner: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
     name: { type: String, required: true, trim: true, maxlength: 200 },
     description: { type: String, default: '', trim: true, maxlength: 1000 },
-    text: { type: String, required: true },
+    /**
+     * Defaulted, not required. Mongoose treats an empty string as a missing
+     * value for `required`, so `required: true` made an empty note impossible
+     * to create — while the zod layer above it defaults `text` to `''` and
+     * advertises it as optional. The two disagreed, and the frontend's
+     * "create the note first, write into it after" flow (S3-35) is exactly
+     * the case that hits it.
+     */
+    text: { type: String, default: '' },
     sections: [{ type: Schema.Types.ObjectId, ref: 'Section' }],
     tags: [{ type: Schema.Types.ObjectId, ref: 'Tag' }],
     canDelete: { type: Boolean, default: true },

@@ -22,6 +22,28 @@ describe('note ownership', () => {
     await agent.get(`/api/notes/${id}`).expect(404)
   })
 
+  /**
+   * The frontend creates the note first and writes into it afterwards
+   * (S3-35), so the very first request of every new note carries no body
+   * text. The zod layer defaults `text` to `''`, but the Mongoose schema
+   * treated an empty string as a missing required value and rejected it —
+   * caught end to end, against a real server, not by any unit test.
+   */
+  it('creates a note with no body text, then fills it in', async () => {
+    const { agent } = await signUp()
+
+    const created = await agent.post('/api/notes').send({ name: 'Untitled note' }).expect(201)
+
+    expect(created.body.text).toBe('')
+
+    const filled = await agent
+      .patch(`/api/notes/${created.body._id}`)
+      .send({ text: '<p>written afterwards</p>' })
+      .expect(200)
+
+    expect(filled.body.text).toContain('written afterwards')
+  })
+
   it('never lets one account touch another account\'s note', async () => {
     const owner = await signUp()
     const stranger = await signUp()
