@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import request from 'supertest'
-import { app, signUp } from './helpers'
+import { signUp } from './helpers'
 
 describe('note ownership', () => {
   it('creates, reads, updates and deletes a note', async () => {

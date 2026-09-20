@@ -1,5 +1,5 @@
 import { createTransport } from 'nodemailer'
-import { google } from 'googleapis'
+import { auth as googleAuth, gmail as gmailApi } from '@googleapis/gmail'
 import { env } from '../config/env'
 import { logger } from '../lib/logger'
 
@@ -14,14 +14,16 @@ import { logger } from '../lib/logger'
  * googleapis refreshes internally.
  */
 
+// The scoped @googleapis/gmail package rather than the umbrella `googleapis`,
+// which bundles every Google API and was 115MB of the runtime image on its own.
 const oauth2Client = env.mailConfigured
-  ? new google.auth.OAuth2(env.MAIL_CLIENT_ID, env.MAIL_CLIENT_SECRET)
+  ? new googleAuth.OAuth2(env.MAIL_CLIENT_ID, env.MAIL_CLIENT_SECRET)
   : null
 
 // MAIL_REDIRECT_URI is deliberately absent — the refresh-token flow does not use it.
 oauth2Client?.setCredentials({ refresh_token: env.MAIL_REFRESH_TOKEN })
 
-const gmail = oauth2Client ? google.gmail({ version: 'v1', auth: oauth2Client }) : null
+const gmail = oauth2Client ? gmailApi({ version: 'v1', auth: oauth2Client }) : null
 
 /** `buffer: true` makes sendMail return the composed message; it opens no socket. */
 const mimeBuilder = createTransport({ streamTransport: true, buffer: true, newline: 'unix' })
