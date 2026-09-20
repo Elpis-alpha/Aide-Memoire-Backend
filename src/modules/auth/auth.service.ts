@@ -55,7 +55,9 @@ export const provisionWelcomeContent = async (userId: Types.ObjectId): Promise<v
     canDelete: false,
     isPublic: false,
     specialName: 'welcome',
-    text: welcomeNote(),
+    // The illustration is a static asset and the link points at the frontend
+    // (S2-18, S2-19) rather than being inlined and broken respectively.
+    text: welcomeNote(env.HOST, env.FRONT_END_LOCATION),
   })
 }
 
