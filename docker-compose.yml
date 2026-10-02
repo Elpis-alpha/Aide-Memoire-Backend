@@ -14,10 +14,17 @@ services:
     image: aide-memoire-api:latest
     container_name: aide-memoire-api
     restart: unless-stopped
-    # Bound to loopback only. nginx on the host terminates TLS and proxies
-    # to 5004; the container never has a publicly reachable port.
-    ports:
-      - "127.0.0.1:5004:5000"
+    # No published port. The reverse proxy is itself a container on the shared
+    # `overseer-edge` network and reaches this one directly, so there is nothing
+    # for the host to forward and nothing bound on the host at all.
+    #
+    # Point the proxy at `aide-memoire-api:5000` — the CONTAINER name, which is
+    # unique across the box. Compose also adds the *service* name as an alias on
+    # every network this joins, so `api` resolves here too; on a network shared
+    # with other projects that alias is almost certainly not unique, and Docker
+    # round-robins between every container claiming it.
+    expose:
+      - "5000"
     env_file: .env
     environment:
       NODE_ENV: production
@@ -33,7 +40,13 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - internal
+      # Reaches redis here; redis is on this network only.
+      internal:
+      # Reachable by the proxy here. The explicit alias is what the proxy should
+      # use, and it keeps working if container_name is ever dropped.
+      overseer-edge:
+        aliases:
+          - aide-memoire-api
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5000/healthz"]
       interval: 30s
@@ -71,6 +84,8 @@ services:
     volumes:
       - redis-data:/data
     networks:
+      # Internal only, deliberately NOT on overseer-edge — otherwise every
+      # project sharing that network could reach the refresh-token store.
       - internal
     logging:
       driver: json-file
@@ -81,6 +96,13 @@ services:
 networks:
   internal:
     name: aide-memoire-internal
+
+  # The shared reverse-proxy network. Created and owned outside this project —
+  # `docker network create overseer-edge` — so Compose must not try to make it.
+  # `up` fails with a clear error if it does not exist.
+  overseer-edge:
+    external: true
+    name: overseer-edge
 
 volumes:
   redis-data:
