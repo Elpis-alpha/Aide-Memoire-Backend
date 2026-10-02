@@ -1,10 +1,18 @@
 # Mongo is Atlas — deliberately no database service here, so there is no
 # volume to back up and no replica set to maintain on the VPS.
+#
+# Every name below is explicit. Compose otherwise derives the project name from
+# the directory, which here is "back-end" — generic enough to collide with any
+# other project on a shared VPS, and it namespaces the containers, the network
+# and the redis volume. An accidental collision on the volume is the dangerous
+# one: two projects would share one redis append-only file.
+name: aide-memoire
 
 services:
   api:
     build: .
     image: aide-memoire-api:latest
+    container_name: aide-memoire-api
     restart: unless-stopped
     # Bound to loopback only. nginx on the host terminates TLS and proxies
     # to 5004; the container never has a publicly reachable port.
@@ -17,11 +25,15 @@ services:
       # nginx forwards X-Forwarded-For, so the rate limiter sees real client
       # IPs rather than the proxy's.
       TRUST_PROXY: "1"
+      # Resolved over the project network by service name, not via the host, so
+      # this keeps working with no published redis port.
       REDIS_URL: redis://redis:6379
       LOG_LEVEL: info
     depends_on:
       redis:
         condition: service_healthy
+    networks:
+      - internal
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5000/healthz"]
       interval: 30s
@@ -38,10 +50,18 @@ services:
 
   redis:
     image: redis:7-alpine
+    container_name: aide-memoire-redis
     restart: unless-stopped
-    # Refresh-token store and rate-limit counters. Loopback only.
-    ports:
-      - "127.0.0.1:6379:6379"
+    # Refresh-token store and rate-limit counters.
+    #
+    # Deliberately NOT published to the host. Only `api` talks to it, over the
+    # project network. Publishing 127.0.0.1:6379 would fail to start the stack
+    # outright if anything else on the VPS — another project, or a system redis
+    # — already holds that port, and it would expose this instance to every
+    # other process on the box for no gain. Reach it for debugging with
+    # `docker compose exec redis redis-cli` instead.
+    expose:
+      - "6379"
     command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -50,11 +70,20 @@ services:
       retries: 5
     volumes:
       - redis-data:/data
+    networks:
+      - internal
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
 
+networks:
+  internal:
+    name: aide-memoire-internal
+
 volumes:
   redis-data:
+    # Explicit, so it is never "back-end_redis-data" and never shared with
+    # another project's redis by accident.
+    name: aide-memoire-redis-data
