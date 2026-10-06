@@ -70,6 +70,17 @@ export const createApp = () => {
   app.use(express.json({ limit: '100kb' }))
   app.use(express.urlencoded({ extended: true, limit: '100kb' }))
 
+  // Images are embedded into pages on another origin: the welcome note stores
+  // this host's absolute URL and is rendered by the frontend. helmet's default
+  // `same-origin` policy makes the browser refuse them, so this one directory
+  // opts in. Everything else keeps the strict default.
+  app.use(
+    '/img',
+    express.static(path.join(__dirname, '../public/img'), {
+      setHeaders: res => res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'),
+    }),
+  )
+
   app.use(express.static(path.join(__dirname, '../public')))
 
   app.use(healthRouter)
