@@ -15,7 +15,12 @@ import { healthRouter } from './modules/health/health.routes'
 import { openApiRouter } from './modules/health/openapi.routes'
 import { authRouter } from './modules/auth/auth.routes'
 import { usersRouter } from './modules/users/users.routes'
-import { notesRouter, publicNotesRouter, treeRouter } from './modules/notes/notes.routes'
+import {
+  carriesNoteBody,
+  notesRouter,
+  publicNotesRouter,
+  treeRouter,
+} from './modules/notes/notes.routes'
 import { publicSectionsRouter, sectionsRouter } from './modules/sections/sections.routes'
 import { tagsRouter } from './modules/tags/tags.routes'
 import { contactRouter } from './modules/contact/contact.routes'
@@ -67,7 +72,8 @@ export const createApp = () => {
 
   // Conservative default. Routes that legitimately carry large payloads raise
   // it for themselves rather than every endpoint inheriting a 20mb ceiling.
-  app.use(express.json({ limit: '100kb' }))
+  const defaultJson = express.json({ limit: '100kb' })
+  app.use((req, res, next) => (carriesNoteBody(req) ? next() : defaultJson(req, res, next)))
   app.use(express.urlencoded({ extended: true, limit: '100kb' }))
 
   // Images are embedded into pages on another origin: the welcome note stores

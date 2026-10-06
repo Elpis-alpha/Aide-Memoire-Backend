@@ -12,6 +12,21 @@ export const notFoundHandler: RequestHandler = (_req, _res, next) => {
   next(AppError.notFound())
 }
 
+const bodyParserFault = (error: unknown): AppError | undefined => {
+  if (typeof error !== 'object' || error === null) return undefined
+  const { type, status } = error as { type?: string; status?: unknown }
+  const fromBodyParser = ['entity.', 'encoding.', 'charset.'].some(prefix => type?.startsWith(prefix))
+  if (typeof type !== 'string' || !fromBodyParser) return undefined
+  if (type === 'entity.too.large') {
+    return new AppError(413, 'payload_too_large', 'That request is too large')
+  }
+  if (type === 'entity.parse.failed') return AppError.badRequest('The request body is not valid JSON')
+  if (typeof status === 'number' && status >= 400 && status < 500) {
+    return new AppError(status, 'bad_request', 'The request body could not be read')
+  }
+  return undefined
+}
+
 const normalise = (error: unknown): AppError => {
   if (isAppError(error)) return error
 
@@ -38,6 +53,12 @@ const normalise = (error: unknown): AppError => {
       })),
     )
   }
+
+  // body-parser refusals (oversize, malformed JSON, unsupported charset) are
+  // the client's mistake. Its messages quote the offending input, so they are
+  // replaced rather than forwarded.
+  const parserFault = bodyParserFault(error)
+  if (parserFault) return parserFault
 
   // Duplicate key — surfaces on unique indexes such as the user email.
   if (typeof error === 'object' && error !== null && (error as { code?: number }).code === 11000) {

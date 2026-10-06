@@ -1,4 +1,4 @@
-import { Router, json } from 'express'
+import { Router, json, type Request } from 'express'
 import { validate } from '../../lib/validate'
 import { requireAuth } from '../../middleware/auth'
 import { writeLimiter } from '../../middleware/rate-limit'
@@ -22,6 +22,17 @@ import * as controller from './notes.controller'
  * rather than every endpoint inheriting the old 20mb ceiling.
  */
 const noteBody = json({ limit: '5mb' })
+
+/**
+ * The app-wide parser must step aside for exactly the routes that carry
+ * `noteBody`: it is mounted before this router, so left alone it would reject
+ * anything over 100kb before `noteBody` is reached. Stepping aside, rather than
+ * mounting the big parser early, keeps a 5mb body from being read until the
+ * caller has passed `requireAuth` and the write limiter.
+ */
+export const carriesNoteBody = (req: Request) =>
+  (req.method === 'POST' && req.path === '/api/notes') ||
+  (req.method === 'PATCH' && /^\/api\/notes\/[^/]+$/.test(req.path))
 
 export const notesRouter = Router()
 
