@@ -72,6 +72,13 @@ const Note = registry.register(
       name: z.string(),
       description: z.string(),
       text: z.string().optional(),
+      excerpt: z
+        .string()
+        .optional()
+        .openapi({
+          description:
+            'Plain-text start of the body. Present on list, search and tree rows, which never carry `text`.',
+        }),
       sections: z.array(NamedRef),
       tags: z.array(NamedRef),
       canDelete: z.boolean(),

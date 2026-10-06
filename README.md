@@ -86,6 +86,21 @@ Search uses a weighted text index over `name` and `description` — **not** note
 bodies, which are stored as sanitised HTML and would tokenise the markup along
 with the prose.
 
+**Excerpts.** List, search and tree rows carry `excerpt` — the plain-text start
+of the body — and never `text`. The first 600 characters are cut inside MongoDB
+(`$substrCP`), so a sidebar of many notes does not carry whole documents; tags
+are stripped and the result trimmed to ~140 characters in `src/lib/excerpt.ts`.
+
+**Welcome content.** New accounts get the Welcome note and two default sections
+from `src/mail/note-templates.ts`. The note is a per-user snapshot, so changing
+the template does not reach existing accounts. `pnpm refresh:welcome` (dry run;
+add `--apply` to write) rewrites the old snapshot, and only where it is still the
+untouched original — a note its owner has edited is left alone.
+
+**Static images.** `/img` is served with `Cross-Origin-Resource-Policy:
+cross-origin`, because notes embed those images by absolute URL and are shown on
+the frontend's origin. Everything else keeps helmet's `same-origin`.
+
 **Sanitisation.** `sanitize-html` runs on note write *and* on render.
 
 ## Testing

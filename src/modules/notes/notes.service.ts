@@ -1,6 +1,7 @@
 import type { FilterQuery, Types } from 'mongoose'
 import { AppError } from '../../lib/errors'
 import { sanitizeNoteHtml, stripHtml } from '../../lib/sanitize'
+import { EXCERPT_SOURCE_CHARS, toExcerpt } from '../../lib/excerpt'
 import { CURSOR_SORT, applyCursor, buildPage, type Page } from '../../lib/pagination'
 import { Note, type INote, type NoteDocument } from '../../models/note.model'
 import { Section } from '../../models/section.model'
@@ -13,8 +14,24 @@ const NAME_POPULATE = [
   { path: 'tags', select: 'name' },
 ] as const
 
-/** Fields a list view needs — never the full `text` body. */
-const LIST_PROJECTION = 'name description sections tags isPublic owner createdAt updatedAt'
+/**
+ * Fields a list view needs. `text` is only the first `EXCERPT_SOURCE_CHARS` of
+ * the body, cut inside MongoDB — never the whole document — and the controller
+ * turns it into `excerpt` and drops it before responding.
+ */
+const BODY_START = { $substrCP: ['$text', 0, EXCERPT_SOURCE_CHARS] }
+
+const LIST_PROJECTION = {
+  name: 1,
+  description: 1,
+  sections: 1,
+  tags: 1,
+  isPublic: 1,
+  owner: 1,
+  createdAt: 1,
+  updatedAt: 1,
+  text: BODY_START,
+}
 
 const listNotes = async (
   filter: FilterQuery<INote>,
@@ -239,6 +256,12 @@ export const detachRelation = async (
   return note
 }
 
+/** Swaps a note's body start for its excerpt: the body itself never leaves the server in a list. */
+const withExcerpt = <T extends { text?: string }>({ text, ...rest }: T) => ({
+  ...rest,
+  excerpt: toExcerpt(text ?? ''),
+})
+
 /**
  * S2-23 — the sidebar previously fetched the section list, then issued one
  * request per section for its notes. One aggregation replaces the whole set.
@@ -254,7 +277,7 @@ export const getTree = async (owner: Types.ObjectId) => {
         pipeline: [
           { $match: { $expr: { $and: [{ $eq: ['$owner', owner] }, { $in: ['$$sectionId', '$sections'] }] } } },
           { $sort: { updatedAt: -1 } },
-          { $project: { name: 1, description: 1, isPublic: 1, updatedAt: 1 } },
+          { $project: { name: 1, description: 1, isPublic: 1, updatedAt: 1, text: BODY_START } },
         ],
         as: 'notes',
       },
@@ -262,8 +285,12 @@ export const getTree = async (owner: Types.ObjectId) => {
   ])
 
   const freeNotes = await Note.find({ owner, sections: { $size: 0 } })
-    .select('name description isPublic updatedAt')
+    .select({ name: 1, description: 1, isPublic: 1, updatedAt: 1, text: BODY_START })
     .sort({ updatedAt: -1 })
+    .lean()
 
-  return { sections, freeNotes }
+  return {
+    sections: sections.map(section => ({ ...section, notes: section.notes.map(withExcerpt) })),
+    freeNotes: freeNotes.map(withExcerpt),
+  }
 }

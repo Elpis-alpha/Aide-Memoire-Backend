@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express'
 import { body, params, query } from '../../lib/validate'
 import { currentUser } from '../../middleware/auth'
 import { sanitizeNoteHtml } from '../../lib/sanitize'
+import { toExcerpt } from '../../lib/excerpt'
 import type { NoteDocument } from '../../models/note.model'
 import type { Page } from '../../lib/pagination'
 import {
@@ -28,8 +29,18 @@ const present = (note: NoteDocument) => {
   return json
 }
 
+/**
+ * List rows: the model hands over only the start of the body (see
+ * LIST_PROJECTION), which becomes a plain-text `excerpt`. The body itself is
+ * deliberately not part of a list response.
+ */
+const presentSummary = (note: NoteDocument) => {
+  const { text, ...json } = note.toJSON() as Record<string, unknown>
+  return { ...json, excerpt: toExcerpt(typeof text === 'string' ? text : '') }
+}
+
 const presentPage = (page: Page<NoteDocument>) => ({
-  items: page.items.map(present),
+  items: page.items.map(presentSummary),
   nextCursor: page.nextCursor,
 })
 

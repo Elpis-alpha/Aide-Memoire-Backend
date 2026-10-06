@@ -204,6 +204,10 @@
           "text": {
             "type": "string"
           },
+          "excerpt": {
+            "type": "string",
+            "description": "Plain-text start of the body. Present on list, search and tree rows, which never carry `text`."
+          },
           "sections": {
             "type": "array",
             "items": {
