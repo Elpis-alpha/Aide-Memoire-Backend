@@ -39,13 +39,13 @@ export const provisionWelcomeContent = async (userId: Types.ObjectId): Promise<v
       owner: userId,
       name: 'Favorite',
       canDelete: false,
-      description: 'A special section for keeping special (favored) notes.',
+      description: 'Notes you want close at hand.',
     },
     {
       owner: userId,
       name: 'Important',
       canDelete: false,
-      description: 'A special section for keeping notes of great significance or value.',
+      description: 'Notes that matter most.',
     },
   ])
 
@@ -54,10 +54,9 @@ export const provisionWelcomeContent = async (userId: Types.ObjectId): Promise<v
     name: 'Welcome',
     canDelete: false,
     isPublic: false,
+    description: 'A two-minute tour. Edit it as you read.',
     specialName: 'welcome',
-    // The illustration is a static asset and the link points at the frontend
-    // (S2-18, S2-19) rather than being inlined and broken respectively.
-    text: welcomeNote(env.HOST, env.FRONT_END_LOCATION),
+    text: welcomeNote(env.FRONT_END_LOCATION),
   })
 }
 

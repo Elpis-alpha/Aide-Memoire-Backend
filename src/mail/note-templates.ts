@@ -1,15 +1,41 @@
 /**
  * The note every new account starts with.
  *
- * S2-18 — the illustration used to be a base64 `data:` URI inlined directly
- * into this string, so a copy of the image bytes was written into every user's
- * welcome note document. It is now a static asset served from `public/`,
- * which keeps the documents small and lets the image be cached at the edge.
+ * The note body is stored HTML, rendered by the frontend's editor — so it may
+ * only use what that editor can hold. TipTap drops anything it has no
+ * extension for (inline `style`, font and colour marks), which is what made the
+ * 2022 version's "Various Font and Sizes" and "Colored Text" demos show plain
+ * text. This one sticks to headings, lists, emphasis, code, quotes, sub/superscript
+ * and links, and a test keeps it that way.
  *
- * S2-19 — the "Go to the sky" link pointed at `/notes/create-new`, which is
- * not a route. The route is `/note/create-new`, and it belongs to the
- * frontend rather than the API, so it is built from the frontend's origin.
+ * The page heading is the note's title, so the body starts at `h2`.
+ *
+ * S2-18 — no image: the previous version embedded one by this API's absolute
+ * URL, which both baked a host name into every user's document and was refused
+ * by the browser (cross-origin).
+ * S2-19 — links are built from the frontend's origin, and none of them go to
+ * `/note/create-new`: that route used to create a note on every visit.
  */
-export const welcomeNote = (baseUrl: string, frontendUrl: string): string => {
-  return `<p><strong><span style="font-size: 2.2rem; line-height: 4.4rem">Welcome to Aide-mémoire 📓</span></strong></p><p><strong><span style="font-size: 1rem; line-height: 2rem">Your world awaits you, populate it however you wish</span></strong></p><p></p><p>Thanks for choosing us, we hope you enjoy your stay here with us. Here's a list of things you can do in this application:</p><ol><li><p>Create Notes ➕</p></li><li><p>Edit Notes 🖊</p></li><li><p>Categorize Notes in Sections 📕</p></li><li><p>Give Notes Tags for Grouping and SEO ⚡</p></li><li><p>Search for Notes 🔎</p></li><li><p>Make Notes Public</p></li><li><p>Add a Biography</p></li><li><p>Create Default Note Settings</p></li><li><p>Delete Notes and Sections</p></li><li><p>And Lots More...</p></li></ol><p></p><p>Here are also some of the things you can write in a note:</p><ul><li><p>Various Font and Sizes</p></li></ul><p><span style="font-size: 1.2rem; font-family: Impact, Haettenschweiler, Arial Narrow Bold, sans-serif; line-height: 2.4rem">Hello There</span></p><ul><li><p>Emoji Tab</p></li></ul><p>🥰😜🤪😝</p><ul><li><p>Colored Background</p></li></ul><p><span style="background-color: rgb(26, 244, 41)">Hello There</span></p><ul><li><p>Linked Text</p></li></ul><p><a target="_blank" rel="noopener noreferrer nofollow" href="${frontendUrl}/note/create-new">Go to the sky</a></p><ul><li><p>Images</p><img src="${baseUrl}/img/welcome-note.jpg" alt="inserted image"><p></p></li><li><p><strong><span style="font-size: 1.4rem; line-height: 2.8rem">Bold</span></strong><span style="font-size: 1.4rem; line-height: 2.8rem">, </span><em><span style="font-size: 1.4rem; line-height: 2.8rem">Italics</span></em><span style="font-size: 1.4rem; line-height: 2.8rem">, </span><span style="font-size: 1.4rem; line-height: 2.8rem; text-decoration: underline">Underline</span><span style="font-size: 1.4rem; line-height: 2.8rem"> and </span><s><span style="font-size: 1.4rem; line-height: 2.8rem">Strike through</span></s></p></li><li><p>Code Block</p></li></ul><p><code>const cat = require('cat')</code></p><ul><li><p>Subscript and Superscript</p></li></ul><p>45OC is the temperature of H2O</p><ul><li><p>Some Colored Text</p></li></ul><p><span style="color: rgb(234, 99, 42)">Hello There</span></p><ul><li><p>Block quotes</p></li></ul><blockquote><p>Someone wise once said:</p><p><em>"a stitch in time saves</em></p><p><em>nine"</em></p></blockquote><ul><li><p>And Numbered and Bullet List</p></li></ul><p></p><p>Thanks for taking your time to go through me and as a bonus, if you're ever bored, try hitting these tiny stars floating around. They stop on the first hit and dissapear on the second. </p><p>Good Luck</p>`
+export const welcomeNote = (frontendUrl: string): string => {
+  const privacy = `${frontendUrl}/privacy`
+  const settings = `${frontendUrl}/settings`
+
+  return [
+    `<p>This note is a two-minute tour. Click anywhere in it and edit — your changes save themselves.</p>`,
+    `<h2>Get going</h2>`,
+    `<ol>`,
+    `<li><p><strong>Name your notes.</strong> The title and one-line description sit above the editor, and search looks through both.</p></li>`,
+    `<li><p><strong>File them in a section.</strong> Make a section with the folder button next to “New note”, then press “File” under a note’s title.</p></li>`,
+    `<li><p><strong>Tag across sections.</strong> Press “+ Tag” to group notes by what they are about, wherever they live.</p></li>`,
+    `<li><p><strong>Watch it save.</strong> The “Saved” mark above the editor confirms your latest change is stored.</p></li>`,
+    `<li><p><strong>Publish on purpose.</strong> A note is private until you press Publish, and Unpublish takes it back.</p></li>`,
+    `</ol>`,
+    `<h2>What the editor can do</h2>`,
+    `<p><strong>Bold</strong>, <em>italic</em>, <u>underline</u> and <s>strikethrough</s>; <code>inline code</code>; and <a href="${privacy}">links</a>.</p>`,
+    `<p>Water is H<sub>2</sub>O, and the area of a square is side<sup>2</sup>.</p>`,
+    `<blockquote><p>A stitch in time saves nine.</p></blockquote>`,
+    `<p>Headings, lists, alignment and pictures are on the toolbar.</p>`,
+    `<h2>Make it yours</h2>`,
+    `<p>Add your name and a short biography in <a href="${settings}">Settings</a>; they appear on notes you publish. Rewrite or clear this note whenever you like — it stays in your list.</p>`,
+  ].join('')
 }
